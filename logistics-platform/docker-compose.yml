@@ -1,0 +1,146 @@
+# Logistics Management Platform — local development stack
+# Core services: postgres, redis, backend, frontend.
+# Dev auxiliaries (profile "dev"): mailhog (email), minio (S3-compatible).
+#
+# Notes:
+#   * Postgres & Redis run immediately (S1-T2).
+#   * backend & frontend images build once their scaffolds add manifests/code (S1-T5 / S1-T6).
+#     Until then use `make up-infra` to run only postgres + redis.
+#   * Variable substitution comes from the root .env (auto-loaded by Docker Compose).
+name: logistics-platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: logistics-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-logistics}
+      POSTGRES_USER: ${POSTGRES_USER:-logistics_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_owner}
+      APP_DB_USER: ${APP_DB_USER:-app_user}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-change_me_app}
+      MIGRATION_DB_USER: ${MIGRATION_DB_USER:-logistics_migrator}
+      MIGRATION_DB_PASSWORD: ${MIGRATION_DB_PASSWORD:-change_me_migrator}
+      SUPERADMIN_DB_USER: ${SUPERADMIN_DB_USER:-app_superadmin}
+      SUPERADMIN_DB_PASSWORD: ${SUPERADMIN_DB_PASSWORD:-change_me_superadmin}
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "log_min_duration_statement=500"
+      - "-c"
+      - "log_lock_waits=on"
+      - "-c"
+      - "timezone=UTC"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Bootstrap: extensions + roles (S1-T3). No schema/tables here.
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-logistics_owner} -d ${POSTGRES_DB:-logistics}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [logistics]
+
+  redis:
+    image: redis:7-alpine
+    container_name: logistics-redis
+    restart: unless-stopped
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [logistics]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile
+      target: development
+    container_name: logistics-backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app:cached        # hot reload; application code added in S1-T5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s             # generous: app boots after S1-T5
+    networks: [logistics]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile
+      target: development
+    container_name: logistics-frontend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app:cached       # hot reload; application code added in S1-T6
+      - /app/node_modules            # keep container node_modules
+    depends_on:
+      - backend
+    networks: [logistics]
+
+  # ---------- dev-only auxiliaries (enable with: --profile dev) ----------
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: logistics-mailhog
+    profiles: ["dev"]
+    ports:
+      - "8025:8025"   # web UI  -> http://localhost:8025
+      - "1025:1025"   # SMTP
+    networks: [logistics]
+
+  minio:
+    image: minio/minio:latest
+    container_name: logistics-minio
+    profiles: ["dev"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-change_me}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-change_me}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # console -> http://localhost:9001
+    volumes:
+      - miniodata:/data
+    networks: [logistics]
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+
+networks:
+  logistics:
+    driver: bridge

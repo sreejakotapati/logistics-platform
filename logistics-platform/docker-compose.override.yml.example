@@ -1,0 +1,10 @@
+# Copy to docker-compose.override.yml for personal local tweaks (git-ignored).
+# Docker Compose merges this on top of docker-compose.yml automatically.
+services:
+  backend:
+    environment:
+      APP_DEBUG: "true"
+      LOG_LEVEL: debug
+  frontend:
+    environment:
+      WATCHPACK_POLLING: "true"   # enable if file watching is flaky on your OS

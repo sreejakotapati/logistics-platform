@@ -1,0 +1,46 @@
+name: Docker Build
+
+# Validates that the production images build. No push, no deploy (that is S1-T8+).
+on:
+  pull_request:
+    paths: ["backend/**", "frontend/**", "docker/**", ".github/workflows/docker-build.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/**", "frontend/**", "docker/**", ".github/workflows/docker-build.yml"]
+
+concurrency:
+  group: docker-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-image:
+    name: Build backend image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./docker/backend/Dockerfile
+          target: production
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  frontend-image:
+    name: Build frontend image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./docker/frontend/Dockerfile
+          target: production
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

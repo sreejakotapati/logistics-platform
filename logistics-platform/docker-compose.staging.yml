@@ -1,0 +1,139 @@
+# Staging stack — cloud-agnostic (runs on any Docker host). No cloud-provider services.
+# Usage: docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+#        (or: make staging-up  |  scripts/deploy-staging.sh)
+name: logistics-staging
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: staging-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN:-staging.localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [frontend, backend]
+    logging: *default-logging
+    networks: [edge, internal]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+        NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-staging}
+    container_name: staging-frontend
+    restart: unless-stopped
+    env_file: .env.staging
+    expose: ["3000"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    networks: [internal]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile
+      target: production
+    container_name: staging-backend
+    restart: unless-stopped
+    env_file: .env.staging
+    expose: ["8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits: { cpus: "1.5", memory: 1g }
+    logging: *default-logging
+    networks: [internal]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: staging-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-logistics}
+      POSTGRES_USER: ${POSTGRES_USER:-logistics_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env.staging}
+      APP_DB_USER: ${APP_DB_USER:-app_user}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set in .env.staging}
+      MIGRATION_DB_USER: ${MIGRATION_DB_USER:-logistics_migrator}
+      MIGRATION_DB_PASSWORD: ${MIGRATION_DB_PASSWORD:?set in .env.staging}
+      SUPERADMIN_DB_USER: ${SUPERADMIN_DB_USER:-app_superadmin}
+      SUPERADMIN_DB_PASSWORD: ${SUPERADMIN_DB_PASSWORD:?set in .env.staging}
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "log_min_duration_statement=500"
+      - "-c"
+      - "timezone=UTC"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    # No host port published — Postgres is reachable only on the internal network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-logistics_owner} -d ${POSTGRES_DB:-logistics}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    container_name: staging-redis
+    restart: unless-stopped
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - redisdata:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
+    networks: [internal]
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:      # public-facing (caddy :80/:443)
+    driver: bridge
+  internal:  # app + data tier; not published to the host
+    driver: bridge

@@ -1,0 +1,30 @@
+# Review routing maps folders to their owning agent/role (see .claude/agents).
+# Replace the @placeholders with real GitHub usernames/teams when the org is set up.
+
+# Backend
+/backend/                      @backend-engineer
+/backend/alembic/              @database-architect
+/database/                     @database-architect
+
+# Frontend
+/frontend/                     @frontend-engineer
+
+# Tests & quality (QA owns the cross-tenant isolation suite + coverage gate)
+/tests/                        @qa-engineer
+/backend/tests/                @qa-engineer @backend-engineer
+/docs/testing/                 @qa-engineer
+
+# AI services
+/ai-services/                  @ai-engineer
+
+# Infra / CI / Docker
+/docker/                       @devops-engineer
+/.github/                      @devops-engineer
+
+# Architecture & decisions
+/docs/architecture/            @solution-architect
+/docs/adr/                     @solution-architect
+
+# Governance (single source of truth + agent definitions)
+/CLAUDE.md                     @solution-architect
+/.claude/                      @solution-architect
