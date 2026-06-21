@@ -7,14 +7,19 @@ on:
   schedule:
     - cron: "0 6 * * 1"   # weekly, Monday 06:00 UTC
 
+# Least-privilege default for all jobs; CodeQL widens its own below.
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   codeql:
     name: CodeQL (${{ matrix.language }})
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # upload CodeQL results to code scanning
+      packages: read           # fetch internal/private CodeQL packs
+      actions: read            # read workflow run metadata (required in private repos)
+      contents: read           # checkout
     strategy:
       fail-fast: false
       matrix:
@@ -32,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy (vuln, secret, misconfig)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scanners: vuln,secret,misconfig
