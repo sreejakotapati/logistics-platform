@@ -8,7 +8,7 @@ Adds organization profile fields and a JSONB `settings` bag to `organizations`, 
 one is an identity-plane action (the invitee is not yet a member), handled by the service on the
 privileged session.
 """
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 

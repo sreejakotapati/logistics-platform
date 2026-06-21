@@ -7,7 +7,7 @@ Without this, a refresh would always snap the active org back to the user's prim
 org on the refresh record lets org-switch persist across refreshes: switch updates this column, and
 rotation carries it forward.
 """
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 

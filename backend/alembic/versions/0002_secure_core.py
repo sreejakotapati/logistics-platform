@@ -18,7 +18,7 @@ Tenancy:
   * `organizations` carries a generated `organization_id = id` so the uniform org-isolation policy
     applies to the tenant root too (an org sees only itself).
 """
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 

@@ -8,7 +8,7 @@ System rows live with organization_id IS NULL. Because `roles` / `role_permissio
 RLS is briefly toggled off around the system-row inserts (the migration runs single-threaded as the
 table owner). `permissions` is a global table (no RLS) and is seeded directly.
 """
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 

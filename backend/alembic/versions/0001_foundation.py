@@ -13,7 +13,7 @@ Establishes the database FOUNDATION only. NO business or entity tables are creat
   * app.enable_org_rls(regclass)— applies the standard tenant-isolation policy to a table
   * runtime grants + default privileges so future tables are usable by the app role
 """
-from typing import Sequence, Union
+from typing import Union
 from alembic import op
 
 revision: str = "0001_foundation"

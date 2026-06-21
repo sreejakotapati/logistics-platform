@@ -8,7 +8,7 @@ based, never a role-name check). This is a global identity table (no org_id, no 
 admin is cross-org by definition. It replaces the provisioning key: provisioning now requires the
 `org:provision` permission, which only platform admins hold.
 """
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 

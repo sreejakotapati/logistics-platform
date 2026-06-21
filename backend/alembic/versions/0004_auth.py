@@ -7,7 +7,7 @@ These are IDENTITY-plane tables (like `users`): no organization_id and no org RL
 happens before/around any org context. They store only HASHES of tokens, never the tokens themselves,
 and are never exposed through the API. Access is via the privileged identity session.
 """
-from typing import Sequence, Union
+from typing import Union
 
 from alembic import op
 

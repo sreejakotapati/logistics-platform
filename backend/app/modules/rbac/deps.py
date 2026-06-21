@@ -10,10 +10,9 @@ import uuid
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
-from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.exceptions import ForbiddenError
 from app.core.redis import get_redis
 from app.db.session import get_system_session
 from app.modules.rbac.service import RBACService

@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any, Generic, Sequence, Type, TypeVar
 
-from sqlalchemy import delete as sa_delete
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
