@@ -1,5 +1,6 @@
 """Application configuration (Pydantic v2 settings)."""
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     # Refresh-token cookie transport
     refresh_cookie_name: str = "lp_refresh"
     cookie_secure: bool = False          # True in staging/production
-    cookie_samesite: str = "lax"
+    cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     cookie_domain: str | None = None
     cookie_path: str = "/api/v1/auth"
 

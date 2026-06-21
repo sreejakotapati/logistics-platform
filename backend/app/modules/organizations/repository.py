@@ -64,7 +64,7 @@ class MembershipRepository:
             .where(UserOrganization.deleted_at.is_(None))
             .order_by(UserOrganization.is_primary.desc(), User.email.asc())
         )
-        return list((await self.session.execute(stmt)).all())
+        return list((await self.session.execute(stmt)).tuples().all())
 
     async def get_member(self, user_id: uuid.UUID) -> tuple[UserOrganization, User] | None:
         stmt = (
@@ -72,7 +72,7 @@ class MembershipRepository:
             .join(User, User.id == UserOrganization.user_id)
             .where(UserOrganization.user_id == user_id, UserOrganization.deleted_at.is_(None))
         )
-        return (await self.session.execute(stmt)).first()
+        return (await self.session.execute(stmt)).tuples().first()
 
     async def get_membership(self, user_id: uuid.UUID) -> UserOrganization | None:
         stmt = select(UserOrganization).where(

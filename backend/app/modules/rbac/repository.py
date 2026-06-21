@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any, cast
 
-from sqlalchemy import or_, select, text, update
+from sqlalchemy import CursorResult, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.models import Role, UserOrganization, UserOrganizationRole
@@ -137,7 +138,9 @@ class AssignmentRepository:
             )
             .values(deleted_at=text("now()"))
         )
-        return result.rowcount or 0
+        # AsyncSession.execute is typed as returning Result, but an UPDATE yields a CursorResult
+        # which carries rowcount; narrow the type so mypy can see the attribute.
+        return cast("CursorResult[Any]", result).rowcount or 0
 
 
 class PlatformAdminRepository:

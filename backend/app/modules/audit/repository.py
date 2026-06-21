@@ -13,6 +13,7 @@ from typing import AsyncIterator
 
 from sqlalchemy import Text, and_, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.modules.audit.models import AuditLog
 
@@ -30,8 +31,8 @@ class AuditFilters:
     platform_only: bool = False
 
 
-def _conditions(f: AuditFilters) -> list:
-    conds = []
+def _conditions(f: AuditFilters) -> list[ColumnElement[bool]]:
+    conds: list[ColumnElement[bool]] = []
     if f.platform_only:
         conds.append(AuditLog.organization_id.is_(None))
     if f.action:
@@ -60,7 +61,7 @@ def _conditions(f: AuditFilters) -> list:
     return conds
 
 
-def _keyset(created_at: datetime, row_id: uuid.UUID, ascending: bool):
+def _keyset(created_at: datetime, row_id: uuid.UUID, ascending: bool) -> ColumnElement[bool]:
     if ascending:
         return or_(
             AuditLog.created_at > created_at,

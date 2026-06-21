@@ -87,7 +87,8 @@ async def timeline(
     settings: Settings = Depends(get_settings),
 ) -> AuditTimeline:
     buckets, nxt = await AuditService(session, settings).timeline(f, limit=limit, cursor=cursor)
-    return AuditTimeline(buckets=buckets, next_cursor=nxt)
+    # The service yields plain dict buckets; model_validate coerces them into TimelineBucket models.
+    return AuditTimeline.model_validate({"buckets": buckets, "next_cursor": nxt})
 
 
 # =========================================================== actor / entity

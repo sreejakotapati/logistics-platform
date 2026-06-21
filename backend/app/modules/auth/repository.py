@@ -95,7 +95,7 @@ class MembershipRepository:
             .where(UserOrganization.user_id == user_id, UserOrganization.deleted_at.is_(None))
             .order_by(UserOrganization.is_primary.desc(), Organization.name.asc())
         )
-        return list((await self.session.execute(stmt)).all())
+        return list((await self.session.execute(stmt)).tuples().all())
 
     async def get_primary(self, user_id: uuid.UUID) -> UserOrganization | None:
         stmt = (

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Any, cast
 
 import redis.asyncio as aioredis
 
@@ -51,7 +52,12 @@ class AbuseMonitor:
         try:
             cutoff = time.time() - self.s.login_failure_window_seconds
             await self.redis.zremrangebyscore(_FLAGGED, 0, cutoff)
-            rows = await self.redis.zrevrange(_FLAGGED, 0, limit - 1, withscores=True)
+            # With withscores=True redis returns (member, score) pairs; the client stub types the
+            # result loosely, so narrow it to the actual member/score tuple shape.
+            rows = cast(
+                "list[tuple[Any, float]]",
+                await self.redis.zrevrange(_FLAGGED, 0, limit - 1, withscores=True),
+            )
             return [{"ip": ip, "last_seen_epoch": int(score)} for ip, score in rows]
         except Exception as exc:  # noqa: BLE001
             logger.warning("abuse snapshot unavailable (%s)", exc)
