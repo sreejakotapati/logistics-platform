@@ -1,0 +1,31 @@
+# Reverse proxy with automatic HTTPS (Let's Encrypt) for staging.
+# Public domain  -> Caddy provisions & renews certificates automatically.
+# Internal/no-DNS -> set STAGING_DOMAIN=staging.localhost and uncomment `tls internal`.
+{
+    email {$ACME_EMAIL}
+}
+
+{$STAGING_DOMAIN} {
+    encode gzip zstd
+
+    # Backend API + health/docs
+    @api path /api/* /health /ready /docs /redoc /openapi.json
+    handle @api {
+        reverse_proxy backend:8000
+    }
+
+    # Everything else -> Next.js frontend
+    handle {
+        reverse_proxy frontend:3000
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # tls internal
+}

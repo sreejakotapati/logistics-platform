@@ -1,0 +1,44 @@
+name: Dependency Scan
+
+on:
+  pull_request:
+    paths: ["backend/requirements*.txt", "frontend/package*.json", ".github/workflows/dependency-scan.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/requirements*.txt", "frontend/package*.json"]
+  schedule:
+    - cron: "0 7 * * 1"   # weekly
+
+jobs:
+  backend-audit:
+    name: Backend dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pip-audit
+        # S1: informational. From Sprint 2 remove continue-on-error to gate.
+        continue-on-error: true
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: backend/requirements.txt
+
+  frontend-audit:
+    name: Frontend dependency audit (npm audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: npm audit
+        continue-on-error: true   # S1: informational
+        run: |
+          test -f package-lock.json || { echo "::error::package-lock.json missing — commit it first"; exit 1; }
+          npm ci
+          npm audit --audit-level=high

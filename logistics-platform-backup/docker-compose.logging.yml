@@ -1,0 +1,36 @@
+# Logging foundation (optional overlay). Aggregates container stdout/stderr (structured JSON)
+# into Loki via Promtail. View in Grafana (add Loki datasource http://loki:3100).
+# Usage: docker compose -f docker-compose.logging.yml up -d
+name: logistics-logging
+
+services:
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: staging-loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    networks: [logging]
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: staging-promtail
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/promtail-config.yml"]
+    volumes:
+      - ./docker/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    networks: [logging]
+
+volumes:
+  loki_data:
+
+networks:
+  logging:
+    driver: bridge

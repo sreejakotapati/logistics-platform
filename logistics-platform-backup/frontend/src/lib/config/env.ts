@@ -1,0 +1,6 @@
+// Typed access to public environment variables (NEXT_PUBLIC_* are build-time inlined).
+export const env = {
+  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1',
+  wsUrl: process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws',
+  appEnv: process.env.NEXT_PUBLIC_APP_ENV ?? 'local',
+} as const;
