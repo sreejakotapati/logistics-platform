@@ -2,16 +2,22 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function useSession() {
-  return useAuthStore((s) => ({
-    status: s.status,
-    user: s.user,
-    activeOrgId: s.activeOrgId,
-    organizations: s.organizations,
-    isAuthenticated: s.status === 'authenticated',
-  }));
+  // `useShallow` is required: Zustand v5 compares selector output with `Object.is`, so returning a
+  // fresh object literal each render would change the snapshot every time and trigger an infinite
+  // re-render loop (React error #185, "Maximum update depth exceeded"). Shallow-compare the fields.
+  return useAuthStore(
+    useShallow((s) => ({
+      status: s.status,
+      user: s.user,
+      activeOrgId: s.activeOrgId,
+      organizations: s.organizations,
+      isAuthenticated: s.status === 'authenticated',
+    })),
+  );
 }
 
 export function useSwitchOrg() {

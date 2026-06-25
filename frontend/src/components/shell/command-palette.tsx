@@ -10,7 +10,10 @@ import {
 import { useUIStore } from '@/stores/ui-store';
 
 export function CommandPalette() {
-  const { commandOpen, setCommandOpen } = useUIStore();
+  // Select each field individually rather than `useUIStore()` (whole store), so this only re-renders
+  // when `commandOpen` changes — not when the sidebar is toggled. The action ref is stable.
+  const commandOpen = useUIStore((s) => s.commandOpen);
+  const setCommandOpen = useUIStore((s) => s.setCommandOpen);
   const router = useRouter();
   const { setTheme } = useTheme();
 

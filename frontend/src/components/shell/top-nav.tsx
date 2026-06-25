@@ -10,7 +10,10 @@ import { UserMenu } from '@/components/shell/user-menu';
 import { SidebarNav } from '@/components/shell/sidebar-nav';
 
 export function TopNav() {
-  const { toggleSidebar, setCommandOpen } = useUIStore();
+  // Select each action individually rather than `useUIStore()` (whole store), so this header does not
+  // re-render when unrelated UI state (e.g. commandOpen) changes. Action refs are stable.
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const setCommandOpen = useUIStore((s) => s.setCommandOpen);
   return (
     <header className="flex h-14 items-center gap-2 border-b bg-background px-3">
       {/* Mobile nav */}
