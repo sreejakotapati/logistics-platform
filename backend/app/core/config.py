@@ -102,12 +102,11 @@ class Settings(BaseSettings):
     # Email links
     frontend_base_url: str = "https://logistics-platforms-6qqf2wdsi-aparna3.vercel.app"
 
-# CORS
-    cors_origins: list[str] = [
-    "http://localhost:3000",
-    "https://logistics-platforms-6qqf2wdsi-aparna3.vercel.app",
-    "https://logistics-platforms-3uv37pcus-aparna3.vercel.app",
-]
+    # CORS — a static allowlist plus a regex that covers every Vercel deployment (preview + production).
+    # Any https://logistics-platforms*.vercel.app origin is accepted, so no deployment ever needs a
+    # manual CORS change. Adjustable per-environment via the CORS_ORIGIN_REGEX env var.
+    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origin_regex: str = r"^https://logistics-platforms[a-z0-9-]*\.vercel\.app$"
 
     @property
     def is_production(self) -> bool:
@@ -127,6 +126,10 @@ class Settings(BaseSettings):
                 )
             # Secure cookies are mandatory outside local; force-on as defence in depth.
             self.cookie_secure = True
+            # Frontend (Vercel) and API (Render) are served from different sites, so the refresh
+            # cookie must be SameSite=None to be sent on cross-origin requests. None requires Secure
+            # (forced above). This makes cross-site login/refresh work with no per-deployment changes.
+            self.cookie_samesite = "none"
         return self
 
 

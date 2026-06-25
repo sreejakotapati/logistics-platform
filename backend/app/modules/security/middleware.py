@@ -6,6 +6,7 @@ because the underlying password/token/RLS controls are never bypassed.
 """
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse
 
 from fastapi.responses import JSONResponse
@@ -146,6 +147,9 @@ class CsrfMiddleware(BaseHTTPMiddleware):
         self.s = settings
         allowed = settings.csrf_allowed_origins or [*settings.cors_origins, settings.frontend_base_url]
         self.allowed = {_origin_of(o) or o for o in allowed}
+        # Mirror the CORS origin regex so every Vercel preview/production domain that CORS accepts
+        # also passes the CSRF origin check — keeping the two policies in lockstep with no manual list.
+        self._origin_regex = re.compile(settings.cors_origin_regex) if settings.cors_origin_regex else None
 
     async def dispatch(self, request: Request, call_next):
         if (not self.s.csrf_protection_enabled or request.method in _SAFE_METHODS
@@ -155,7 +159,7 @@ class CsrfMiddleware(BaseHTTPMiddleware):
         origin_header = request.headers.get("origin") or request.headers.get("referer")
         if origin_header:
             origin = _origin_of(origin_header)
-            if origin not in self.allowed:
+            if origin not in self.allowed and not (origin and self._origin_regex and self._origin_regex.match(origin)):
                 await emit_security_event(
                     self.s, action="security.csrf_blocked", entity_type="security",
                     metadata={"origin": origin_header, "path": request.url.path, "method": request.method},
