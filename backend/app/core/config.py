@@ -99,10 +99,14 @@ class Settings(BaseSettings):
     csrf_allowed_origins: list[str] = []             # empty -> cors_origins + frontend_base_url
 
     # Email links (delivery is stubbed in Sprint 2 — links are logged, not sent)
-    frontend_base_url: str = "http://localhost:3000"
+    # Email links
+    frontend_base_url: str = "https://logistics-platforms-6qqf2wdsi-aparna3.vercel.app"
 
-    # CORS
-    cors_origins: list[str] = ["http://localhost:3000"]
+# CORS
+    cors_origins: list[str] = [
+    "http://localhost:3000",
+    "https://logistics-platforms-6qqf2wdsi-aparna3.vercel.app",
+]
 
     @property
     def is_production(self) -> bool:
