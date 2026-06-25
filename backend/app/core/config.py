@@ -106,6 +106,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
     "http://localhost:3000",
     "https://logistics-platforms-6qqf2wdsi-aparna3.vercel.app",
+    "https://logistics-platforms-3uv37pcus-aparna3.vercel.app",
 ]
 
     @property
