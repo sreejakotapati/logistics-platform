@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build context: ./frontend   |   Application code & package.json are added in S1-T6.
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
